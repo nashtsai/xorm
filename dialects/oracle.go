@@ -1,45 +1,24 @@
-package xorm
+package dialects
 
+// oracle is commented
+
+/*
 import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
+
+	. "github.com/lunny/xorm/core"
 )
 
+func init() {
+	RegisterDialect("oracle", &oracle{})
+}
+
 type oracle struct {
-	base
-}
-
-type oracleParser struct {
-}
-
-//dataSourceName=user/password@ipv4:port/dbname
-//dataSourceName=user/password@[ipv6]:port/dbname
-func (p *oracleParser) parse(driverName, dataSourceName string) (*uri, error) {
-	db := &uri{dbType: ORACLE_OCI}
-	dsnPattern := regexp.MustCompile(
-		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@
-			`(?P<net>.*)` + // ip:port
-			`\/(?P<dbname>.*)`) // dbname
-	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	names := dsnPattern.SubexpNames()
-	for i, match := range matches {
-		switch names[i] {
-		case "dbname":
-			db.dbName = match
-		}
-	}
-	if db.dbName == "" {
-		return nil, errors.New("dbname is empty")
-	}
-	return db, nil
-}
-
-func (db *oracle) Init(drivername, uri string) error {
-	return db.base.init(&oracleParser{}, drivername, uri)
+	Base
 }
 
 func (db *oracle) SqlType(c *Column) string {
@@ -119,12 +98,12 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
 
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, nil, err
 	}
 	defer cnn.Close()
-	res, err := query(cnn, s, args...)
+	res, err := cnn.Query(cnn, s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,7 +134,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 				default:
 					col.SQLType = SQLType{strings.ToUpper(ct), 0, 0}
 				}
-				if _, ok := sqlTypes[col.SQLType.Name]; !ok {
+				if _, ok := SqlTypes[col.SQLType.Name]; !ok {
 					return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", ct))
 				}
 			case "data_length":
@@ -183,7 +162,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*Column, er
 func (db *oracle) GetTables() ([]*Table, error) {
 	args := []interface{}{}
 	s := "SELECT table_name FROM user_tables"
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := sql.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +191,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
 	s := "SELECT t.column_name,i.table_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
 		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
 
-	cnn, err := sql.Open(db.driverName, db.dataSourceName)
+	cnn, err := sql.Open(db.DriverName(), db.DataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -256,3 +235,12 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*Index, error) {
 	}
 	return indexes, nil
 }
+
+func (db *oracle) CreateTablSql(*Table) (string, error) {
+	return "", nil
+}
+
+func (db *oracle) Filters() []Filter {
+	return []Filter{&QuoteFilter{}, &IdFilter{}}
+}
+*/
