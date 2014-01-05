@@ -127,25 +127,29 @@ func (db *postgres) GetColumns(tableName string) ([]string, map[string]*Column, 
 	for rows.Next() {
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
-		var colName, colDefault, isNullable, dataType, numPrecision, numRadix string
-		var maxLenStr string
+		var colName, isNullable, dataType string
+		var maxLenStr, colDefault, numPrecision, numRadix *string
 		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix)
 		if err != nil {
-			fmt.Println("-----", err)
 			return nil, nil, err
 		}
 
-		maxLen, err := strconv.Atoi(maxLenStr)
-		if err != nil {
-			return nil, nil, err
+		var maxLen int
+		if maxLenStr != nil {
+			maxLen, err = strconv.Atoi(*maxLenStr)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		col.Name = strings.Trim(colName, `" `)
 
-		if strings.HasPrefix(colDefault, "nextval") {
-			col.IsPrimaryKey = true
-		} else {
-			col.Default = colDefault
+		if colDefault != nil {
+			if strings.HasPrefix(*colDefault, "nextval") {
+				col.IsPrimaryKey = true
+			} else {
+				col.Default = *colDefault
+			}
 		}
 
 		if isNullable == "YES" {

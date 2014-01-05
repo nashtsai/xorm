@@ -27,7 +27,7 @@ func (rs *Rows) Scan(dest ...interface{}) error {
 	newDest := make([]interface{}, 0)
 	for _, s := range dest {
 		vv := reflect.ValueOf(s)
-		switch reflect.TypeOf(s).Kind() {
+		switch vv.Kind() {
 		case reflect.Ptr:
 			vvv := vv.Elem()
 			if vvv.Kind() == reflect.Struct {

@@ -79,6 +79,10 @@ func (b *Base) DataSourceName() string {
 	return b.dataSourceName
 }
 
+func (b *Base) Quote(c string) string {
+	return b.dialect.QuoteStr() + c + b.dialect.QuoteStr()
+}
+
 func (b *Base) CreateTableSql(table *Table, tableName, storeEngine, charset string) string {
 	var sql string
 	sql = "CREATE TABLE IF NOT EXISTS "
@@ -86,7 +90,7 @@ func (b *Base) CreateTableSql(table *Table, tableName, storeEngine, charset stri
 		tableName = table.Name
 	}
 
-	sql += b.dialect.QuoteStr() + tableName + b.dialect.QuoteStr() + " ("
+	sql += b.Quote(tableName) + " ("
 
 	pkList := table.PrimaryKeys
 

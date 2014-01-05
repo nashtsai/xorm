@@ -128,7 +128,8 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 		col := new(Column)
 		col.Indexes = make(map[string]bool)
 
-		var columnName, isNullable, colDefault, colType, colKey, extra string
+		var columnName, isNullable, colType, colKey, extra string
+		var colDefault *string
 		err = rows.Scan(&columnName, &isNullable, &colDefault, &colType, &colKey, &extra)
 		if err != nil {
 			return nil, nil, err
@@ -138,7 +139,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*Column, err
 			col.Nullable = true
 		}
 
-		col.Default = colDefault
+		if colDefault != nil {
+			col.Default = *colDefault
+		}
 
 		cts := strings.Split(colType, "(")
 		var len1, len2 int
@@ -204,12 +207,14 @@ func (db *mysql) GetTables() ([]*Table, error) {
 	tables := make([]*Table, 0)
 	for rows.Next() {
 		table := NewEmptyTable()
-		var name, engine, tableRows, autoIncr string
+		var name, engine, tableRows string
+		var autoIncr *string
 		err = rows.Scan(&name, &engine, &tableRows, &autoIncr)
 		if err != nil {
 			return nil, err
 		}
 
+		table.Name = name
 		tables = append(tables, table)
 	}
 	return tables, nil
