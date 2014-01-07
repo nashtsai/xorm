@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lunny/xorm/core"
+	"../core"
 )
 
 func init() {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lunny/xorm/core"
+	"./core"
 )
 
 /*const (

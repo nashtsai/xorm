@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/lunny/xorm/core"
-	_ "github.com/lunny/xorm/dialects"
-	_ "github.com/lunny/xorm/drivers"
+	"./core"
+	_ "./dialects"
+	_ "./drivers"
 )
 
 const (

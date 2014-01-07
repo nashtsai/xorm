@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/lunny/xorm/core"
+	"../core"
 )
 
 func init() {

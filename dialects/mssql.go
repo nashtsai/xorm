@@ -10,7 +10,7 @@ import (
 	"strings"
 	//"time"
 
-	. "github.com/lunny/xorm/core"
+	. "../core"
 )
 
 func init() {

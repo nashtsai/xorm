@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"./core"
 )
 
 // statement save all the sql info for executing SQL

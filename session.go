@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunny/xorm/core"
+	"./core"
 )
 
 // Struct Session keep a pointer to sql.DB and provides all execution of all

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lunny/xorm/core"
+	"../core"
 )
 
 func init() {
