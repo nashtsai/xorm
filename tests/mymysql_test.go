@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
+	"../"
+	"../caches"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 

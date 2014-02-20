@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/core"
+	"../"
+	"../core"
 )
 
 /*

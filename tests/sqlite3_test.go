@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
-	"github.com/lunny/xorm/core"
+	"../"
+	"../caches"
+	"../core"
 	_ "github.com/mattn/go-sqlite3"
 )
 

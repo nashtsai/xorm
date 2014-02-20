@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"testing"
 
+	"../"
+	"../caches"
+	"../core"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/lunny/xorm"
-	"github.com/lunny/xorm/caches"
-	"github.com/lunny/xorm/core"
 )
 
 /*
