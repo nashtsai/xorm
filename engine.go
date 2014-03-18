@@ -58,7 +58,7 @@ type Engine struct {
 	DataSourceName string
 	dialect        dialect
 	Tables         map[reflect.Type]*Table
-	mutex          *sync.Mutex
+	mutex          *sync.RWMutex
 	ShowSQL        bool
 	ShowErr        bool
 	ShowDebug      bool
@@ -421,12 +421,14 @@ func (engine *Engine) Having(conditions string) *Session {
 }
 
 func (engine *Engine) autoMapType(t reflect.Type) *Table {
-	engine.mutex.Lock()
-	defer engine.mutex.Unlock()
+	engine.mutex.RLock()
 	table, ok := engine.Tables[t]
+	engine.mutex.RUnlock()
 	if !ok {
 		table = engine.mapType(t)
+		engine.mutex.Lock()
 		engine.Tables[t] = table
+		engine.mutex.Unlock()
 	}
 	return table
 }
@@ -452,6 +454,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 	table.Type = t
 
 	var idFieldColName string
+	var err error
 
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
@@ -482,6 +485,7 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 				}
 				var indexType int
 				var indexName string
+				var preKey string
 				for j, key := range tags {
 					k := strings.ToUpper(key)
 					switch {
@@ -494,8 +498,18 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 						col.Nullable = false
 					case k == "NULL":
 						col.Nullable = (strings.ToUpper(tags[j-1]) != "NOT")
+					/*case strings.HasPrefix(k, "AUTOINCR(") && strings.HasSuffix(k, ")"):
+					col.IsAutoIncrement = true
+
+					autoStart := k[len("AUTOINCR")+1 : len(k)-1]
+					autoStartInt, err := strconv.Atoi(autoStart)
+					if err != nil {
+						engine.LogError(err)
+					}
+					col.AutoIncrStart = autoStartInt*/
 					case k == "AUTOINCR":
 						col.IsAutoIncrement = true
+						//col.AutoIncrStart = 1
 					case k == "DEFAULT":
 						col.Default = tags[j+1]
 					case k == "CREATED":
@@ -520,31 +534,42 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 					case k == "NOT":
 					default:
 						if strings.HasPrefix(k, "'") && strings.HasSuffix(k, "'") {
-							if key != col.Default {
+							if preKey != "DEFAULT" {
 								col.Name = key[1 : len(key)-1]
 							}
 						} else if strings.Contains(k, "(") && strings.HasSuffix(k, ")") {
 							fs := strings.Split(k, "(")
 							if _, ok := sqlTypes[fs[0]]; !ok {
+								preKey = k
 								continue
 							}
 							col.SQLType = SQLType{fs[0], 0, 0}
 							fs2 := strings.Split(fs[1][0:len(fs[1])-1], ",")
 							if len(fs2) == 2 {
-								col.Length, _ = strconv.Atoi(fs2[0])
-								col.Length2, _ = strconv.Atoi(fs2[1])
+								col.Length, err = strconv.Atoi(fs2[0])
+								if err != nil {
+									engine.LogError(err)
+								}
+								col.Length2, err = strconv.Atoi(fs2[1])
+								if err != nil {
+									engine.LogError(err)
+								}
 							} else if len(fs2) == 1 {
-								col.Length, _ = strconv.Atoi(fs2[0])
+								col.Length, err = strconv.Atoi(fs2[0])
+								if err != nil {
+									engine.LogError(err)
+								}
 							}
 						} else {
 							if _, ok := sqlTypes[k]; ok {
 								col.SQLType = SQLType{k, 0, 0}
-							} else if key != col.Default {
+							} else if preKey != "DEFAULT" {
 								col.Name = key
 							}
 						}
 						engine.SqlType(col)
 					}
+					preKey = k
 				}
 				if col.SQLType.Name == "" {
 					col.SQLType = Type2SQLType(fieldType)
@@ -588,9 +613,24 @@ func (engine *Engine) mapType(t reflect.Type) *Table {
 			}
 		} else {
 			sqlType := Type2SQLType(fieldType)
-			col = &Column{engine.columnMapper.Obj2Table(t.Field(i).Name), t.Field(i).Name, sqlType,
-				sqlType.DefaultLength, sqlType.DefaultLength2, true, "", make(map[string]bool), false, false,
-				TWOSIDES, false, false, false, false, nil}
+			col = &Column{
+				Name:            engine.columnMapper.Obj2Table(t.Field(i).Name),
+				FieldName:       t.Field(i).Name,
+				SQLType:         sqlType,
+				Length:          sqlType.DefaultLength,
+				Length2:         sqlType.DefaultLength2,
+				Nullable:        true,
+				Default:         "",
+				Indexes:         make(map[string]bool),
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         TWOSIDES,
+				IsCreated:       false,
+				IsUpdated:       false,
+				IsCascade:       false,
+				IsVersion:       false,
+				DefaultIsEmpty:  false,
+			}
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

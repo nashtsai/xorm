@@ -61,6 +61,7 @@ func (statement *Statement) Init() {
 	statement.columnMap = make(map[string]bool)
 	statement.ConditionStr = ""
 	statement.AltTableName = ""
+	statement.IdParam = nil
 	statement.RawSQL = ""
 	statement.RawParams = make([]interface{}, 0)
 	statement.BeanArgs = make([]interface{}, 0)
@@ -510,7 +511,7 @@ func (statement *Statement) Distinct(columns ...string) *Statement {
 func (statement *Statement) Cols(columns ...string) *Statement {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = true
+		statement.columnMap[strings.ToLower(nc)] = true
 	}
 	statement.ColumnStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 	return statement
@@ -521,7 +522,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 	if len(columns) > 0 {
 		newColumns := col2NewCols(columns...)
 		for _, nc := range newColumns {
-			statement.boolColumnMap[nc] = true
+			statement.boolColumnMap[strings.ToLower(nc)] = true
 		}
 	} else {
 		statement.allUseBool = true
@@ -533,7 +534,7 @@ func (statement *Statement) UseBool(columns ...string) *Statement {
 func (statement *Statement) Omit(columns ...string) {
 	newColumns := col2NewCols(columns...)
 	for _, nc := range newColumns {
-		statement.columnMap[nc] = false
+		statement.columnMap[strings.ToLower(nc)] = false
 	}
 	statement.OmitStr = statement.Engine.Quote(strings.Join(newColumns, statement.Engine.Quote(", ")))
 }
@@ -586,7 +587,7 @@ func (statement *Statement) genColumnStr() string {
 	colNames := make([]string, 0)
 	for _, col := range table.Columns {
 		if statement.OmitStr != "" {
-			if _, ok := statement.columnMap[col.Name]; ok {
+			if _, ok := statement.columnMap[strings.ToLower(col.Name)]; ok {
 				continue
 			}
 		}

@@ -275,7 +275,7 @@ type Column struct {
 	IsUpdated       bool
 	IsCascade       bool
 	IsVersion       bool
-	fieldPath       []string
+	DefaultIsEmpty  bool
 }
 
 // generate column description string according dialect
@@ -299,6 +299,8 @@ func (col *Column) String(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
@@ -317,6 +319,8 @@ func (col *Column) stringNoPk(d dialect) string {
 
 	if col.Default != "" {
 		sql += "DEFAULT " + col.Default + " "
+	} else if col.IsVersion {
+		sql += "DEFAULT 1 "
 	}
 
 	return sql
@@ -412,8 +416,9 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 	args := make([]interface{}, 0)
 
 	for _, col := range table.Columns {
+		lColName := strings.ToLower(col.Name)
 		if useCol && !col.IsVersion && !col.IsCreated && !col.IsUpdated {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
@@ -440,12 +445,12 @@ func (table *Table) genCols(session *Session, bean interface{}, useCol bool, inc
 		}
 
 		if session.Statement.ColumnStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; !ok {
+			if _, ok := session.Statement.columnMap[lColName]; !ok {
 				continue
 			}
 		}
 		if session.Statement.OmitStr != "" {
-			if _, ok := session.Statement.columnMap[col.Name]; ok {
+			if _, ok := session.Statement.columnMap[lColName]; ok {
 				continue
 			}
 		}

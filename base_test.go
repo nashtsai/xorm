@@ -267,6 +267,16 @@ func insertTwoTable(engine *Engine, t *testing.T) {
 	}
 }
 
+type Article struct {
+	Id      int32  `xorm:"pk INT autoincr"`
+	Name    string `xorm:"VARCHAR(45)"`
+	Img     string `xorm:"VARCHAR(100)"`
+	Aside   string `xorm:"VARCHAR(200)"`
+	Desc    string `xorm:"VARCHAR(200)"`
+	Content string `xorm:"TEXT"`
+	Status  int8   `xorm:"TINYINT(4)"`
+}
+
 type Condi map[string]interface{}
 
 func update(engine *Engine, t *testing.T) {
@@ -310,6 +320,52 @@ func update(engine *Engine, t *testing.T) {
 
 	if cnt != total {
 		err = errors.New("insert not returned 1")
+		t.Error(err)
+		panic(err)
+		return
+	}
+
+	err = engine.Sync(&Article{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	defer func() {
+		err = engine.DropTables(&Article{})
+		if err != nil {
+			t.Error(err)
+			panic(err)
+		}
+	}()
+
+	a := &Article{0, "1", "2", "3", "4", "5", 2}
+	cnt, err = engine.Insert(a)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
+		t.Error(err)
+		panic(err)
+	}
+
+	if a.Id == 0 {
+		err = errors.New("insert returned id is 0")
+		t.Error(err)
+		panic(err)
+	}
+
+	cnt, err = engine.Id(a.Id).Update(&Article{Name: "6"})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if cnt != 1 {
+		err = errors.New(fmt.Sprintf("insert not returned 1 but %d", cnt))
 		t.Error(err)
 		panic(err)
 		return
@@ -557,20 +613,48 @@ func where(engine *Engine, t *testing.T) {
 
 func in(engine *Engine, t *testing.T) {
 	users := make([]Userinfo, 0)
-	err := engine.In("(id)", 1, 2, 3).Find(&users)
+	err := engine.In("(id)", 7, 8, 9).Find(&users)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	fmt.Println(users)
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
+		t.Error(err)
+		panic(err)
+	}
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
+
+	users = make([]Userinfo, 0)
+	ids := []interface{}{7, 8, 9}
+	err = engine.Where("departname = ?", "dev").In("(id)", ids...).Find(&users)
 	if err != nil {
 		t.Error(err)
 		panic(err)
 	}
 	fmt.Println(users)
 
-	ids := []interface{}{1, 2, 3}
-	err = engine.Where("(id) > ?", 2).In("(id)", ids...).Find(&users)
-	if err != nil {
+	if len(users) != 3 {
+		err = errors.New("in uses should be 7,8,9 total 3")
 		t.Error(err)
 		panic(err)
 	}
-	fmt.Println(users)
+
+	for _, user := range users {
+		if user.Uid != 7 && user.Uid != 8 && user.Uid != 9 {
+			err = errors.New("in uses should be 7,8,9 total 3")
+			t.Error(err)
+			panic(err)
+		}
+	}
 
 	err = engine.In("(id)", 1).In("(id)", 2).In("departname", "dev").Find(&users)
 	if err != nil {
@@ -3175,7 +3259,9 @@ func testPointerData(engine *Engine, t *testing.T) {
 	// using instance type should just work too
 	nullData2Get := NullData2{}
 
-	has, err = engine.Table("null_data").Id(nullData.Id).Get(&nullData2Get)
+	tableName := engine.tableMapper.Obj2Table("NullData")
+
+	has, err = engine.Table(tableName).Id(nullData.Id).Get(&nullData2Get)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3540,7 +3626,9 @@ func testNullValue(engine *Engine, t *testing.T) {
 	// update to null values
 	nullDataUpdate = NullData{}
 
-	cnt, err = engine.Id(nullData.Id).Cols("string_ptr").Update(&nullDataUpdate)
+	string_ptr := engine.columnMapper.Obj2Table("StringPtr")
+
+	cnt, err = engine.Id(nullData.Id).Cols(string_ptr).Update(&nullDataUpdate)
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3706,6 +3794,39 @@ func testCompositeKey(engine *Engine, t *testing.T) {
 	}
 }
 
+type Lowercase struct {
+	Id    int64
+	Name  string
+	ended int64 `xorm:"-"`
+}
+
+func testLowerCase(engine *Engine, t *testing.T) {
+	err := engine.Sync(&Lowercase{})
+	_, err = engine.Where("id > 0").Delete(&Lowercase{})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+	_, err = engine.Insert(&Lowercase{ended: 1})
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	ls := make([]Lowercase, 0)
+	err = engine.Find(&ls)
+	if err != nil {
+		t.Error(err)
+		panic(err)
+	}
+
+	if len(ls) != 1 {
+		err = errors.New("should be 1")
+		t.Error(err)
+		panic(err)
+	}
+}
+
 type User struct {
 	UserId   string `xorm:"varchar(19) not null pk"`
 	NickName string `xorm:"varchar(19) not null"`
@@ -3714,8 +3835,8 @@ type User struct {
 }
 
 func testCompositeKey2(engine *Engine, t *testing.T) {
-
 	err := engine.DropTables(&User{})
+
 	if err != nil {
 		t.Error(err)
 		panic(err)
@@ -3875,6 +3996,8 @@ func testAll2(engine *Engine, t *testing.T) {
 	testPrefixTableName(engine, t)
 	fmt.Println("-------------- testCreatedUpdated --------------")
 	testCreatedUpdated(engine, t)
+	fmt.Println("-------------- testLowercase ---------------")
+	testLowerCase(engine, t)
 	fmt.Println("-------------- processors --------------")
 	testProcessors(engine, t)
 	fmt.Println("-------------- transaction --------------")
@@ -3895,4 +4018,12 @@ func testAll3(engine *Engine, t *testing.T) {
 	testCompositeKey2(engine, t)
 	fmt.Println("-------------- testStringPK --------------")
 	testStringPK(engine, t)
+}
+
+func testAllSnakeMapper(engine *Engine, t *testing.T) {
+
+}
+
+func testAllSameMapper(engine *Engine, t *testing.T) {
+
 }
